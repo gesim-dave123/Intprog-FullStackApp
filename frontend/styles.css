@@ -1,0 +1,104 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Poppins;
+}
+body.not-authenticated .role-logged-in {
+  display: none;
+}
+body.authenticated .role-logged-out {
+  display: none;
+}
+.role-admin {
+  display: none;
+}
+body.is-admin .role-admin {
+  display: block;
+}
+.navbar {
+  background-color: rgb(24, 24, 24);
+  padding: 10px 50px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.navbar a {
+  color: rgb(221, 221, 221);
+}
+.navbar a:hover {
+  color: rgb(122, 122, 122);
+}
+.nav-container {
+  text-align: start;
+}
+.main-content {
+  padding: 20px;
+}
+span {
+  color: rgb(255, 0, 0);
+}
+
+/* Toast Message Styles */
+.toast-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  min-width: 250px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateX(400px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.toast-message.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-error {
+  background-color: #dc3545;
+}
+
+.toast-success {
+  background-color: #28a745;
+}
+
+.toast-warning {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.toast-info {
+  background-color: #17a2b8;
+}
+#navbarAdminDropdown{
+  margin-right: 50px;
+  color:white;
+}
+.dropdown-menu a{
+  color: black;
+}
+
+#logout-btn{
+  color: red;
+}
+
+/* Page visibility and role-based rules */
+.page {
+  display: none;
+}
+.page.active {
+  display: block;
+}
+
+
+/* <--dashboard-> */
+
+
+
