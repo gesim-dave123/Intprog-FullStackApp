@@ -47,7 +47,7 @@
                             <hr class="dropdown-divider">
                         </li>
                         <li><a class="dropdown-item color-red" onclick="handleLogout(event)" id="logout-btn">Logout</a>
-                        </li>   
+                        </li>
                     </ul>
                 </li>
             </ul>
@@ -69,12 +69,33 @@
 
             <div class="alert alert-info" role="alert">
                 <strong>⚠️Note:</strong> All data is stored in
-                <span>localStorage</span>. Refresh to reset.
+                <span>localStorage</span>
             </div>
             <div>
                 <button id="get-started-btn" class="btn btn-primary" onclick="navigateTo('#/register')">
                     Get Started <i class="bi bi-arrow-right"></i>
                 </button>
+                <button class="btn btn-outline-secondary ms-2" onclick="navigateTo('#/guest')">
+                    <i class="bi bi-eye"></i> View Guest Content
+                </button>
+            </div>
+        </section>
+
+        <section class="page" id="guest-content-section">
+            <h2>Guest Content</h2>
+            <p class="text-muted">This page is publicly accessible — no login required.</p>
+            <div class="card">
+                <div class="card-body">
+                    <div id="guest-message" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Fetching content from server...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <a href="#/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Home</a>
             </div>
         </section>
 
@@ -92,7 +113,7 @@
                 <div class="mb-3">
                     <label for="username" class="form-label">Username</label>
                     <input type="text" class="form-control" id="username" required />
-                </div>,
+                </div>
                 <div class="mb-3">
                     <label for="register-email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="register-email" required />
@@ -118,14 +139,24 @@
 
         <section class="page" id="verify-email-section">
             <h2>Verify your Email</h2>
-            <div class="alert alert-success d-none" id="verify-alert" role="alert">
-                ✅ A verification link has been sent to your email.
+            <p class="text-muted">Your account was created successfully.</p>
+
+            <div class="alert alert-info" role="alert">
+                📧 A verification request has been sent for: <strong id="verify-email-display"></strong>
             </div>
-            <p>For demo purpose, click below to simulate verification:</p>
-            <button type="button" class="btn btn-success" id="verify-btn" onclick="verifyEmail(event)">✅ Simulate Email
-                Verification</button>
-            <a href="#/login" class="btn btn-outline-secondary">Go to Login</a>
+
+            <div class="alert alert-success d-none" id="verify-alert" role="alert">
+                ✅ Email verified successfully! Redirecting to login...
+            </div>
+
+            <p>Click the button below to verify your email and activate your account:</p>
+
+            <button type="button" class="btn btn-success" id="verify-btn" onclick="verifyEmail(event)">
+                ✅ Verify My Email
+            </button>
+            <a href="#/login" class="btn btn-outline-secondary ms-2">Go to Login</a>
         </section>
+
 
         <section class="page" id="login-section">
             <div class="alert alert-success d-none" id="login-alert" role="alert">
@@ -166,105 +197,105 @@
                 </div>
             </div>
         </section>
-       <section class="page container py-4" id="dashboard-section">
+        <section class="page container py-4" id="dashboard-section">
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold mb-0">Admin Dashboard</h2>
                 <span class="badge bg-primary px-3 py-2 fs-6" id="admin-welcome-tag">
-                <i class="bi bi-person-circle me-1"></i> Welcome, Admin
+                    <i class="bi bi-person-circle me-1"></i> Welcome, Admin
                 </span>
             </div>
-            
+
             <!-- Stat Cards -->
             <div class="row g-3">
-            
+
                 <div class="col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary fs-3">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Total Accounts</div>
-                        <div class="fs-3 fw-bold" id="total-accounts">148</div>
-                    </div>
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary fs-3">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-semibold">Total Accounts</div>
+                                <div class="fs-3 fw-bold" id="total-accounts">148</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
-            
+
                 <div class="col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success fs-3">
-                        <i class="bi bi-building"></i>
-                    </div>
-                    <div>
-                        <div  class="text-muted small text-uppercase fw-semibold">Total Departments</div>
-                        <div class="fs-3 fw-bold" id="total-departments">12</div>
-                    </div>
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success fs-3">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-semibold">Total Departments</div>
+                                <div class="fs-3 fw-bold" id="total-departments">12</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
-            
+
                 <div class="col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning fs-3">
-                        <i class="bi bi-clipboard2-data"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Total Requests</div>
-                        <div class="fs-3 fw-bold" id="total-requests">340</div>
-                    </div>
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning fs-3">
+                                <i class="bi bi-clipboard2-data"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-semibold">Total Requests</div>
+                                <div class="fs-3 fw-bold" id="total-requests">340</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
-            
+
                 <div class="col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="rounded-3 p-3 bg-info bg-opacity-10 text-info fs-3">
-                        <i class="bi bi-person-check-fill"></i>
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="rounded-3 p-3 bg-info bg-opacity-10 text-info fs-3">
+                                <i class="bi bi-person-check-fill"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-semibold">Active Employees</div>
+                                <div class="fs-3 fw-bold" id="total-employees">134</div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Active Employees</div>
-                        <div class="fs-3 fw-bold" id="total-employees">134</div>
-                    </div>
-                    </div>
-                </div> 
                 </div>
-            
+
                 <div class="col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="rounded-3 p-3 bg-danger bg-opacity-10 text-danger fs-3">
-                        <i class="bi bi-hourglass-split"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Pending Requests</div>
-                        <div class="fs-3 fw-bold" id="total-pending-requests">27</div>
-                    </div>
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="rounded-3 p-3 bg-danger bg-opacity-10 text-danger fs-3">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-semibold">Pending Requests</div>
+                                <div class="fs-3 fw-bold" id="total-pending-requests">27</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
-            
+
                 <div class="col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success fs-3">
-                        <i class="bi bi-check-circle-fill"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Approved Requests</div>
-                        <div class="fs-3 fw-bold" id="total-approved-requests"></div>
-                    </div>
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success fs-3">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-semibold">Approved Requests</div>
+                                <div class="fs-3 fw-bold" id="total-approved-requests"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
-            
+
             </div>
-            </section>
- 
+        </section>
+
         <section class="page" id="employees-section">
             <div class="container mt-4 ">
 
