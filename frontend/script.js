@@ -2,8 +2,8 @@ let currentUser = null;
 let accountCache = [];
 let employeeCache = [];
 let departmentCache = [];
-const STORAGE_KEY = "ipt_demo_v1";
 
+// Local cache — populated by render functions when fetching from the server
 window.db = {
   accounts: [],
   departments: [],
@@ -11,70 +11,8 @@ window.db = {
   requests: [],
 };
 
-function saveToStorage() {
-  //save the current state of the database to the local storage
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(window.db));
-}
-async function seedDatabase() {
-  //seed the database with default data if local storage is empty or corrupted
-  const adminPassword = await hashPassword("Password123!");
-
-  window.db = {
-    accounts: [
-      {
-        firstName: "System",
-        lastName: "Admin",
-        email: "admin@example.com",
-        hashedPassword: adminPassword,
-        verified: true,
-        role: "Admin",
-      },
-    ],
-    departments: [
-      {
-        id: 1,
-        name: "Engineering",
-        description: "Handles system development",
-      },
-      {
-        id: 2,
-        name: "HR",
-        description: "Handles employee relations",
-      },
-    ],
-    employees: [],
-    requests: [],
-  };
-  saveToStorage();
-}
-
-async function loadFromStorage() {
-  //load the database state from local storage, with error handling for corruption
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      await seedDatabase();
-      return;
-    }
-    const parsed = JSON.parse(raw);
-
-    // Basic validation
-    if (!parsed.accounts || !parsed.departments) {
-      seedDatabase();
-      return;
-    }
-
-    window.db = parsed;
-  } catch (error) {
-    console.error("Storage corrupted. Resetting database.");
-    seedDatabase();
-  }
-}
-
-// Toast notification function
+// Shows a popup notification that disappears after 3 seconds.
 function showToast(message, type = "error") {
-  //  A function `showToast(message, type)` that creates a toast notification with the given message and type (e.g., "success", "error", "info") and automatically disappears after 3 seconds.
   // Remove existing toast if any
   const existingToast = document.querySelector(".toast-message");
   if (existingToast) {
@@ -103,31 +41,13 @@ function showToast(message, type = "error") {
   }, 3000);
 }
 
-async function hashPassword(password) {
-  // A function `hashPassword(password)` that takes a plaintext password and returns a hashed version using the SHA-256 algorithm.
-  // 1. Convert the string to a byte array (Uint8Array)
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-
-  // 2. Hash the data using SHA-256
-  const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
-
-  // 3. Convert the ArrayBuffer to a hex string
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  return hashHex;
-}
-
+// Changes the URL hash to navigate to a different page section
 function navigateTo(hash) {
-  // A function `navigateTo(hash)` that updates
   window.location.hash = hash;
 }
 
+// Also handles access control — redirects unauthenticated or non-admin users.
 function handleRouting() {
-  //A function `handleRouting()` that:
   const hash = window.location.hash || "#/";
   const route = hash.replace("#", "");
   const protectedRoutes = [
@@ -164,15 +84,16 @@ function handleRouting() {
   // Map routes to their Section IDs
   const pageMap = {
     "/": "home-section",
+    "/guest": "guest-content-section",
     "/login": "login-section",
     "/register": "register-section",
+    "/verify-email": "verify-email-section",
     "/profile": "profile-section",
     "/accounts": "accounts-section",
     "/departments": "departments-section",
     "/employees": "employees-section",
     "/requests": "requests-section",
     "/dashboard": "dashboard-section",
-    // "/verify-email": "verify-email-section",
   };
 
   const targetId = pageMap[route] || "home-section";
@@ -200,11 +121,98 @@ function handleRouting() {
   if (route === "/dashboard" && isAuth) {
     renderDashboardData();
   }
+  if (route === "/verify-email") {
+    // Show the registered email on the verify-email page
+    const savedEmail = localStorage.getItem("unverified_email");
+    const emailDisplay = document.getElementById("verify-email-display");
+    if (emailDisplay && savedEmail) emailDisplay.textContent = savedEmail;
+
+    // Reset the verify button in case user navigates back
+    const btn = document.getElementById("verify-btn");
+    if (btn) btn.disabled = false;
+    const verifyAlert = document.getElementById("verify-alert");
+    if (verifyAlert) verifyAlert.classList.add("d-none");
+  }
+  if (route === "/guest") {
+    renderGuestContent();
+  }
 }
 
 function getAuthHeader() {
   const token = sessionStorage.getItem("authToken");
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Decodes the payload part of a JWT token without any external library.
+// A JWT is 3 base64 parts separated by dots: header.payload.signature
+function parseJwt(token) {
+  try {
+    const base64Payload = token.split(".")[1];
+    const jsonPayload = atob(
+      base64Payload.replace(/-/g, "+").replace(/_/g, "/"),
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+// Reads the token's expiry time (exp) and schedules an automatic logout
+// exactly when the token is about to expire. Also clears all caches.
+let autoLogoutTimer = null;
+function scheduleAutoLogout(token) {
+  if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
+
+  const payload = parseJwt(token);
+  if (!payload?.exp) return;
+
+  const expiresInMs = payload.exp * 1000 - Date.now();
+  if (expiresInMs <= 0) {
+    // Token already expired — log out immediately
+    forceLogout("Your session has expired. Please log in again.");
+    return;
+  }
+
+  autoLogoutTimer = setTimeout(() => {
+    forceLogout("Your session has expired. Please log in again.");
+  }, expiresInMs);
+}
+
+// Clears all caches, tokens, and forces the user back to the login page.
+// Called either by the timer or when a 401/403 is received from the server.
+function forceLogout(message = "You have been logged out.") {
+  if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
+  autoLogoutTimer = null;
+
+  // Clear in-memory caches
+  currentUser = null;
+  accountCache = [];
+  employeeCache = [];
+  departmentCache = [];
+  window.db = { accounts: [], departments: [], employees: [], requests: [] };
+
+  // Clear stored tokens and user
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("currentUser");
+  sessionStorage.removeItem("authToken");
+
+  setAuthState(false);
+  showToast(message, "error");
+  navigateTo("#/login");
+}
+
+// A wrapper around fetch() that automatically logs out the user if the
+// server returns 401 (not authenticated) or 403 (forbidden/token expired).
+async function apiFetch(url, options = {}) {
+  options.headers = { ...getAuthHeader(), ...options.headers };
+  const response = await fetch(url, options);
+
+  if (response.status === 401 || response.status === 403) {
+    forceLogout("Your session expired. Please log in again.");
+    throw new Error("Session expired");
+  }
+
+  return response;
 }
 
 async function handleRegistration(event) {
@@ -256,9 +264,10 @@ async function handleRegistration(event) {
       return;
     }
 
-    showToast("Registration successful.", "success");
-    // showToast("Registration successful! Please verify your email.", "success");
-    // localStorage.setItem("");
+    showToast("Registration successful! Please verify your email.", "success");
+
+    // Save the registered email so the verify-email page can use it
+    localStorage.setItem("unverified_email", email);
 
     document.getElementById("first-name").value = "";
     document.getElementById("last-name").value = "";
@@ -266,7 +275,7 @@ async function handleRegistration(event) {
     document.getElementById("register-password").value = "";
 
     setTimeout(() => {
-      navigateTo("#/login");
+      navigateTo("#/verify-email");
     }, 1500);
   } catch (error) {
     console.error("Registration error:", error);
@@ -274,30 +283,55 @@ async function handleRegistration(event) {
   }
 }
 
-function verifyEmail(event) {
-  // A function `verifyEmail(event)` that simulates email verification by checking the unverified email in local storage, updating the user's verified status in the database, and providing appropriate feedback to the user.
+// Rewrites the old localStorage-only verifyEmail.
+// Now calls the backend to check the email and set verified = true.
+async function verifyEmail(event) {
   event.preventDefault();
 
-  const email = localStorage.getItem("unverified_email"); // Finds the email in the local storage
+  const email = localStorage.getItem("unverified_email");
 
-  const user = window.db.accounts.find((u) => u.email === email); // find a user whose email is the same as athe unverified one
-
-  if (!user) {
-    showToast("No unverified email found. Please register again.", "error");
+  if (!email) {
+    showToast("No email to verify. Please register first.", "error");
     return;
   }
 
-  user.verified = true;
-  localStorage.removeItem("unverified_email");
-  localStorage.setItem("verified_email", email);
-  showToast("Verifying your email!.", "info");
+  // Disable the button to prevent double-clicks
+  const btn = document.getElementById("verify-btn");
+  if (btn) btn.disabled = true;
 
-  setTimeout(() => {
-    document.getElementById("verify-alert").classList.remove("d-none");
-    document.getElementById("verify-btn").classList.add("disabled");
-    document.getElementById("login-alert").classList.remove("d-none");
-    showToast("Successfully verified your email!.", "success");
-  }, 1500);
+  try {
+    const response = await fetch(
+      "http://localhost:3000/api/auth/verify-email",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      showToast(data.error || "Verification failed", "error");
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    // Show success alert on the verify-email page
+    const verifyAlert = document.getElementById("verify-alert");
+    if (verifyAlert) verifyAlert.classList.remove("d-none");
+
+    showToast("Email verified! Redirecting to login...", "success");
+    localStorage.removeItem("unverified_email");
+
+    setTimeout(() => {
+      navigateTo("#/login");
+    }, 2000);
+  } catch (error) {
+    console.error("verifyEmail error:", error);
+    showToast("An error occurred during verification.", "error");
+    if (btn) btn.disabled = false;
+  }
 }
 
 function setAuthState(isAuthenticated, user = null) {
@@ -336,24 +370,15 @@ function setAuthState(isAuthenticated, user = null) {
     if (navAuthenticated) navAuthenticated.classList.add("d-none");
   }
 }
-// Handle Logout
 function handleLogout(event) {
-  // A function `handleLogout(event)` that clears the authentication state, removes the JWT token from local storage, updates the UI to reflect the logged-out state, and redirects the user to the home or login page.
   event.preventDefault();
-  // localStorage.clear();
-  localStorage.removeItem("auth_token");
-  localStorage.removeItem("currentUser");
-  sessionStorage.removeItem("authToken");
-  setAuthState(false);
-  showToast("You have been logged out", "success");
+  forceLogout("You have been logged out.");
   navigateTo("#/");
 }
 
 // Handle Login
 async function handleLogin(event) {
-  // A function `handleLogin(event)` that handles the login form submission, including validating the user's credentials against the stored accounts in the database, checking if the email is verified, hashing the entered password and comparing it with the stored hashed password, and setting the authentication state if successful.
   event.preventDefault();
-
   const emailOrUsername = document
     .getElementById("emailOrUsername")
     .value.trim();
@@ -381,6 +406,10 @@ async function handleLogin(event) {
       // Store the token in both sessionStorage and localStorage so refreshes keep authenticated state
       sessionStorage.setItem("authToken", data.token);
       localStorage.setItem("authToken", data.token);
+
+      // Schedule automatic logout when the token expires (1 hour)
+      scheduleAutoLogout(data.token);
+
       showToast("Login successfully", "success");
 
       document.body.classList.remove("not-authenticated");
@@ -391,7 +420,11 @@ async function handleLogin(event) {
       }
       setTimeout(() => {
         setAuthState(true, data.user);
-        navigateTo("#/profile");
+        if (data.user.role.toLowerCase() === "admin") {
+          navigateTo("#/dashboard");
+        } else {
+          navigateTo("#/profile");
+        }
       }, 1000);
     } else {
       showToast(data.error || data.message || "Login Failed", "error");
@@ -399,6 +432,42 @@ async function handleLogin(event) {
   } catch (error) {
     console.error("Login Error");
     showToast("Login Error", "error");
+  }
+}
+
+// Fetches public content from GET /api/content/guest — no login required
+async function renderGuestContent() {
+  const container = document.getElementById("guest-message");
+  if (!container) return;
+
+  // Show loading spinner
+  container.innerHTML = `
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2 text-muted">Fetching content from server...</p>
+  `;
+
+  try {
+    const response = await fetch("http://localhost:3000/api/content/guest");
+    const data = await response.json();
+
+    if (!response.ok) {
+      container.innerHTML = `<p class="text-danger">Failed to load guest content.</p>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="alert alert-success mb-0" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <strong>Server says:</strong> ${data.message}
+      </div>
+    `;
+  } catch (error) {
+    console.error("renderGuestContent error:", error);
+    container.innerHTML = `
+      <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Could not reach the server. Make sure the backend is running.</p>
+    `;
   }
 }
 
@@ -1068,8 +1137,6 @@ async function renderEmployees() {
     // The backend returns { employees: [...] }
     const employeesList = Array.isArray(data) ? data : data?.employees || [];
     employeeCache = employeesList;
-    window.db.employees = employeesList;
-
     if (employeesList.length === 0) {
       employeesTableBody.innerHTML = `
           <tr>
@@ -1609,11 +1676,12 @@ async function updateRequestStatus(event, index, newStatus) {
 window.addEventListener("hashchange", handleRouting);
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadFromStorage();
   const savedUser = localStorage.getItem("currentUser");
   const savedToken = localStorage.getItem("authToken");
   if (savedToken) {
     sessionStorage.setItem("authToken", savedToken);
+    // Re-schedule auto logout based on remaining token lifetime after page reload
+    scheduleAutoLogout(savedToken);
   }
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
