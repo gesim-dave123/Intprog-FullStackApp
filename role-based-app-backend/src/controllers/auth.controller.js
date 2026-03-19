@@ -89,4 +89,32 @@ const login = async (req, res) => {
 
 const logout = async () => {};
 
-module.exports = { registerUser, login, logout };
+const verifyEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const user = users.find(
+      (u) => String(u.email).toLowerCase() === String(email).toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "No account found with that email" });
+    }
+
+    if (user.verified) {
+      return res.status(200).json({ message: "Email is already verified" });
+    }
+
+    user.verified = true;
+    return res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error during verification" });
+  }
+};
+
+module.exports = { registerUser, login, logout, verifyEmail };
